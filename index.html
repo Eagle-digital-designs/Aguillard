@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Hartwell Family Tree</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #2a1f14;
+      --ink-light: #5c4a36;
+      --parchment: #f5ede0;
+      --cream:     #faf6ef;
+      --gold:      #b8892a;
+      --gold-pale: #e8d5a3;
+      --rust:      #8b3a2a;
+      --sage:      #6b7c5e;
+      --card-w:    160px;
+      --card-h:    90px;
+      --gen-gap:   160px;
+      --sib-gap:   200px;
+    }
+
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--cream); }
+
+    /* ── HEADER ───────────────────────────────────────────── */
+    #header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 64px;
+      background: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+      border-bottom: 3px solid var(--gold);
+      box-shadow: 0 4px 24px rgba(0,0,0,.4);
+    }
+    #header h1 {
+      font-family: 'Cinzel', serif;
+      color: var(--gold-pale);
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: .12em;
+    }
+    #header h1 span { color: var(--gold); font-weight: 600; }
+    .header-controls { display: flex; gap: 12px; }
+    .btn {
+      font-family: 'Cinzel', serif;
+      font-size: .7rem;
+      letter-spacing: .08em;
+      color: var(--parchment);
+      background: transparent;
+      border: 1px solid rgba(184,137,42,.5);
+      padding: 7px 16px;
+      cursor: pointer;
+      transition: all .2s;
+      border-radius: 2px;
+    }
+    .btn:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+    .btn.primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+    .btn.primary:hover { background: #d4a030; }
+
+    /* ── CANVAS AREA ──────────────────────────────────────── */
+    #tree-viewport {
+      position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      cursor: grab;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(184,137,42,.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 80%, rgba(107,124,94,.05) 0%, transparent 60%),
+        var(--cream);
+    }
+    #tree-viewport.grabbing { cursor: grabbing; }
+    #tree-viewport::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(42,31,20,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(42,31,20,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    #tree-world {
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: 0 0;
+    }
+
+    /* SVG connector lines */
+    #connectors {
+      position: absolute; top: 0; left: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .connector { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: .65; }
+    .connector-child { stroke: var(--ink-light); stroke-dasharray: none; }
+    .connector-marriage { stroke: var(--gold); stroke-width: 2; }
+
+    /* ── PERSON CARDS ─────────────────────────────────────── */
+    .person-card {
+      position: absolute;
+      width: var(--card-w);
+      height: var(--card-h);
+      background: var(--parchment);
+      border: 1px solid var(--gold-pale);
+      border-top: 3px solid var(--gold);
+      border-radius: 2px;
+      padding: 10px 12px 8px;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+      box-shadow: 0 2px 8px rgba(42,31,20,.12);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .person-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(42,31,20,.22);
+      border-color: var(--gold);
+      z-index: 10;
+    }
+    .person-card.female { border-top-color: var(--sage); }
+    .person-card.female:hover { border-color: var(--sage); }
+    .person-card .card-photo {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--gold-pale);
+      border: 1px solid var(--gold);
+      float: right; margin: -2px -2px 4px 8px;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--ink-light);
+      flex-shrink: 0;
+    }
+    .person-card .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .person-card .card-name {
+      font-family: 'Cinzel', serif;
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: .04em;
+      line-height: 1.3;
+    }
+    .person-card .card-dates {
+      font-family: 'EB Garamond', serif;
+      font-size: .75rem;
+      color: var(--ink-light);
+      margin-top: 2px;
+      font-style: italic;
+    }
+    .person-card .card-tagline {
+      font-family: 'EB Garamond', serif;
+      font-size: .65rem;
+      color: var(--ink-light);
+      line-height: 1.3;
+      margin-top: 4px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .person-card .card-link {
+      font-family: 'Cinzel', serif;
+      font-size: .55rem;
+      color: var(--gold);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-top: 4px;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .person-card:hover .card-link { opacity: 1; }
+
+    /* Marriage node dot */
+    .union-dot {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: 2px solid var(--parchment);
+      box-shadow: 0 0 0 1px var(--gold);
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      cursor: default;
+    }
+
+    /* ── CONTROLS OVERLAY ─────────────────────────────────── */
+    #zoom-controls {
+      position: fixed; bottom: 24px; right: 24px; z-index: 100;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .zoom-btn {
+      width: 36px; height: 36px;
+      background: var(--ink);
+      color: var(--gold-pale);
+      border: 1px solid var(--gold);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 2px;
+      transition: background .15s;
+    }
+    .zoom-btn:hover { background: var(--gold); color: var(--ink); }
+
+    /* ── LEGEND ───────────────────────────────────────────── */
+    #legend {
+      position: fixed; bottom: 24px; left: 24px; z-index: 100;
+      background: rgba(42,31,20,.85);
+      border: 1px solid var(--gold);
+      padding: 12px 16px;
+      border-radius: 2px;
+      backdrop-filter: blur(4px);
+    }
+    #legend p { font-family: 'EB Garamond', serif; color: var(--gold-pale); font-size: .75rem; margin-bottom: 4px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .legend-line { width: 24px; height: 2px; }
+    .legend-line.marriage { background: var(--gold); }
+    .legend-line.child { background: var(--ink-light); }
+    .legend-label { font-family: 'EB Garamond', serif; color: var(--gold-pale); font-size: .7rem; font-style: italic; }
+
+    /* ── GENERATION LABELS ────────────────────────────────── */
+    .gen-label {
+      position: absolute;
+      font-family: 'Cinzel', serif;
+      font-size: .65rem;
+      letter-spacing: .1em;
+      color: rgba(184,137,42,.4);
+      writing-mode: horizontal-tb;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ── TOOLTIP ──────────────────────────────────────────── */
+    #tooltip {
+      position: fixed;
+      z-index: 200;
+      background: var(--ink);
+      color: var(--gold-pale);
+      font-family: 'EB Garamond', serif;
+      font-size: .8rem;
+      padding: 6px 12px;
+      border-radius: 2px;
+      border: 1px solid var(--gold);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      max-width: 220px;
+    }
+
+    /* ── MODAL (Add Person) ───────────────────────────────── */
+    #modal-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(42,31,20,.7);
+      display: none;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    #modal-overlay.open { display: flex; }
+    #modal {
+      background: var(--cream);
+      border: 2px solid var(--gold);
+      border-radius: 4px;
+      padding: 32px 36px;
+      width: 520px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto;
+    }
+    #modal h2 {
+      font-family: 'Cinzel', serif;
+      color: var(--ink);
+      font-size: 1rem;
+      letter-spacing: .1em;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--gold-pale);
+    }
+    .form-row { display: flex; gap: 16px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; flex: 1; gap: 4px; }
+    .form-group label {
+      font-family: 'Cinzel', serif; font-size: .65rem; letter-spacing: .06em;
+      color: var(--ink-light); text-transform: uppercase;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      border: 1px solid var(--gold-pale);
+      background: var(--parchment);
+      font-family: 'EB Garamond', serif;
+      font-size: .9rem;
+      padding: 6px 10px;
+      color: var(--ink);
+      outline: none;
+      border-radius: 2px;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--gold);
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .modal-note {
+      font-family: 'EB Garamond', serif; font-style: italic;
+      color: var(--ink-light); font-size: .78rem; margin-top: 12px;
+      padding: 10px 12px; background: var(--parchment);
+      border-left: 3px solid var(--gold-pale);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────────── -->
+<header id="header">
+  <h1>The <span>Hartwell</span> Family History</h1>
+  <div class="header-controls">
+    <button class="btn" onclick="resetView()">⌂ Center Tree</button>
+    <a href="gedcom-import.html" class="btn" style="text-decoration:none">⬆ Import GEDCOM</a>
+    <button class="btn primary" onclick="openAddModal()">+ Add Person</button>
+  </div>
+</header>
+
+<!-- ── TREE VIEWPORT ───────────────────────────────────────── -->
+<div id="tree-viewport">
+  <div id="tree-world">
+    <svg id="connectors"></svg>
+    <!-- Person cards injected here by JS -->
+  </div>
+</div>
+
+<!-- ── UI OVERLAYS ─────────────────────────────────────────── -->
+<div id="zoom-controls">
+  <button class="zoom-btn" onclick="adjustZoom(0.15)" title="Zoom In">+</button>
+  <button class="zoom-btn" onclick="adjustZoom(-0.15)" title="Zoom Out">−</button>
+</div>
+
+<div id="legend">
+  <p style="font-family:'Cinzel',serif; font-size:.65rem; letter-spacing:.08em; color:var(--gold); margin-bottom:8px;">LEGEND</p>
+  <div class="legend-row"><div class="legend-line marriage"></div><span class="legend-label">Marriage / Union</span></div>
+  <div class="legend-row"><div class="legend-line child"></div><span class="legend-label">Parent → Child</span></div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- ── ADD PERSON MODAL ────────────────────────────────────── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>Add a New Family Member</h2>
+    <div class="form-row">
+      <div class="form-group"><label>First Name *</label><input type="text" id="f-first" placeholder="Eleanor"></div>
+      <div class="form-group"><label>Last Name *</label><input type="text" id="f-last" placeholder="Hartwell"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Maiden Name</label><input type="text" id="f-maiden" placeholder="(if applicable)"></div>
+      <div class="form-group">
+        <label>Gender</label>
+        <select id="f-gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other / Unknown</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Birth Year</label><input type="text" id="f-birth" placeholder="1920"></div>
+      <div class="form-group"><label>Death Year</label><input type="text" id="f-death" placeholder="(leave blank if living)"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Birth Place</label><input type="text" id="f-birthplace" placeholder="Boston, MA"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Short Tagline</label><input type="text" id="f-tagline" placeholder="One sentence about this person…"></div>
+    </div>
+    <div class="modal-note">
+      After saving, open <strong>assets/family-data.js</strong> to review the generated entry,
+      then add union (marriage/partnership) relationships and link a story page.
+      See <strong>INSTRUCTIONS.md</strong> for details.
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveNewPerson()">Save &amp; Show Code</button>
+    </div>
+    <pre id="modal-output" style="display:none; margin-top:16px; background:var(--ink); color:var(--gold-pale);
+      font-size:.72rem; padding:14px; border-radius:2px; white-space:pre-wrap; overflow-x:auto;"></pre>
+  </div>
+</div>
+
+<!-- ── DATA ────────────────────────────────────────────────── -->
+<script src="assets/family-data.js"></script>
+
+<!-- ── TREE ENGINE ─────────────────────────────────────────── -->
+<script>
+// ─── State ──────────────────────────────────────────────────
+let zoom = 0.85, panX = 60, panY = 40;
+let dragging = false, lastMX = 0, lastMY = 0;
+const viewport = document.getElementById('tree-viewport');
+const world    = document.getElementById('tree-world');
+const svg      = document.getElementById('connectors');
+
+// ─── Layout Constants ────────────────────────────────────────
+const CARD_W  = 160, CARD_H = 90;
+const H_GAP   = 40;   // horizontal gap between sibling cards
+const V_GAP   = 130;  // vertical gap between generations
+const UNION_Y_OFFSET = CARD_H / 2; // marriage line at card midpoint
+
+// ─── Build Family Graph ──────────────────────────────────────
+const { people, unions } = FAMILY_DATA;
+
+// Map: personId → unions they belong to
+function getPersonUnions(pid) {
+  return Object.values(unions).filter(u => u.partner1 === pid || u.partner2 === pid);
+}
+// Map: personId → parent union id (if any)
+function getParentUnion(pid) {
+  return Object.values(unions).find(u => u.children && u.children.includes(pid));
+}
+
+// ─── Generation Assignment ───────────────────────────────────
+function assignGenerations() {
+  const gen = {};
+  // BFS from roots (people with no parent union)
+  const roots = Object.keys(people).filter(pid => !getParentUnion(pid));
+  const queue = roots.map(r => ({ id: r, g: 0 }));
+  while (queue.length) {
+    const { id, g } = queue.shift();
+    if (gen[id] !== undefined) continue;
+    gen[id] = g;
+    // Push children through all unions
+    getPersonUnions(id).forEach(u => {
+      (u.children || []).forEach(cid => {
+        if (gen[cid] === undefined) queue.push({ id: cid, g: g + 1 });
+      });
+    });
+  }
+  // Any remaining unassigned
+  Object.keys(people).forEach(pid => { if (gen[pid] === undefined) gen[pid] = 0; });
+  return gen;
+}
+
+// ─── Layout Algorithm ────────────────────────────────────────
+function computeLayout() {
+  const gen = assignGenerations();
+  const maxGen = Math.max(...Object.values(gen));
+
+  // Group people by generation
+  const byGen = {};
+  for (let g = 0; g <= maxGen; g++) byGen[g] = [];
+  Object.keys(people).forEach(pid => byGen[gen[pid]].push(pid));
+
+  // Assign x positions: for each generation, lay out in order
+  // Try to keep couples together
+  const positions = {}; // pid → {x, y}
+
+  // We'll do a recursive layout starting from root couples
+  let globalX = 80;
+
+  function layoutUnion(unionId, x, y) {
+    const u = unions[unionId];
+    const p1 = u.partner1, p2 = u.partner2;
+    const children = u.children || [];
+
+    // Place couple
+    const coupleW = p2 ? CARD_W * 2 + H_GAP : CARD_W;
+    const startX = x;
+    if (p1 && !positions[p1]) positions[p1] = { x: startX, y };
+    if (p2 && !positions[p2]) positions[p2] = { x: startX + CARD_W + H_GAP, y };
+
+    // Layout children
+    if (children.length === 0) return coupleW;
+
+    const childY = y + CARD_H + V_GAP;
+    let childX = startX;
+
+    children.forEach((cid, i) => {
+      if (!positions[cid]) positions[cid] = { x: childX, y: childY };
+      // Check if this child has their own union
+      const childUnions = getPersonUnions(cid).filter(cu => {
+        const pu = getParentUnion(cid);
+        return cu !== pu; // not the union they came from
+      });
+      if (childUnions.length > 0) {
+        const subtreeW = layoutUnion(childUnions[0].id, childX, childY);
+        childX += subtreeW + H_GAP;
+      } else {
+        childX += CARD_W + H_GAP;
+      }
+    });
+
+    return Math.max(coupleW, childX - startX - H_GAP);
+  }
+
+  // Find top-level unions (unions where neither partner has a parent union)
+  const topUnions = Object.values(unions).filter(u => {
+    const p1parent = u.partner1 ? getParentUnion(u.partner1) : null;
+    const p2parent = u.partner2 ? getParentUnion(u.partner2) : null;
+    return !p1parent && !p2parent;
+  });
+
+  let curX = 80;
+  topUnions.forEach(u => {
+    const w = layoutUnion(u.id, curX, 80);
+    curX += w + H_GAP * 3;
+  });
+
+  // Place any remaining unpositioned people
+  Object.keys(people).forEach(pid => {
+    if (!positions[pid]) {
+      positions[pid] = { x: curX, y: 80 + gen[pid] * (CARD_H + V_GAP) };
+      curX += CARD_W + H_GAP;
+    }
+  });
+
+  return positions;
+}
+
+// ─── Render ──────────────────────────────────────────────────
+function render() {
+  // Clear
+  world.querySelectorAll('.person-card, .union-dot, .gen-label').forEach(el => el.remove());
+  svg.innerHTML = '';
+
+  const positions = computeLayout();
+
+  // Draw connectors
+  Object.values(unions).forEach(u => {
+    const p1 = u.partner1 ? positions[u.partner1] : null;
+    const p2 = u.partner2 ? positions[u.partner2] : null;
+
+    if (p1 && p2) {
+      // Marriage line between the two partners (horizontal, at card midpoint)
+      const x1 = p1.x + CARD_W;
+      const x2 = p2.x;
+      const y  = p1.y + CARD_H / 2;
+      const mid = (x1 + x2) / 2;
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y);
+      line.setAttribute('class', 'connector connector-marriage');
+      svg.appendChild(line);
+
+      // Marriage dot
+      const dot = document.createElement('div');
+      dot.className = 'union-dot';
+      dot.style.left = mid + 'px';
+      dot.style.top  = y + 'px';
+      dot.title = u.married ? `Married ${u.married}` : 'Union';
+      world.appendChild(dot);
+
+      // Children lines from midpoint drop down
+      const children = u.children || [];
+      if (children.length > 0) {
+        const dropY = y + 40;
+
+        // Vertical drop from union midpoint
+        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        vLine.setAttribute('x1', mid); vLine.setAttribute('y1', y);
+        vLine.setAttribute('x2', mid); vLine.setAttribute('y2', dropY);
+        vLine.setAttribute('class', 'connector connector-child');
+        svg.appendChild(vLine);
+
+        // Horizontal spread to each child
+        const childXs = children.map(cid => positions[cid] ? positions[cid].x + CARD_W / 2 : null).filter(Boolean);
+        if (childXs.length > 1) {
+          const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          hLine.setAttribute('x1', Math.min(...childXs)); hLine.setAttribute('y1', dropY);
+          hLine.setAttribute('x2', Math.max(...childXs)); hLine.setAttribute('y2', dropY);
+          hLine.setAttribute('class', 'connector connector-child');
+          svg.appendChild(hLine);
+        }
+        children.forEach(cid => {
+          if (!positions[cid]) return;
+          const cx = positions[cid].x + CARD_W / 2;
+          const cy = positions[cid].y;
+          const downLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          downLine.setAttribute('x1', cx); downLine.setAttribute('y1', dropY);
+          downLine.setAttribute('x2', cx); downLine.setAttribute('y2', cy);
+          downLine.setAttribute('class', 'connector connector-child');
+          svg.appendChild(downLine);
+        });
+      }
+    } else {
+      // Single parent with children
+      const parent = p1 || p2;
+      if (!parent) return;
+      const children = u.children || [];
+      const px = parent.x + CARD_W / 2;
+      const py = parent.y + CARD_H;
+      const dropY = py + 40;
+      if (children.length === 0) return;
+
+      const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      vLine.setAttribute('x1', px); vLine.setAttribute('y1', py);
+      vLine.setAttribute('x2', px); vLine.setAttribute('y2', dropY);
+      vLine.setAttribute('class', 'connector connector-child');
+      svg.appendChild(vLine);
+
+      children.forEach(cid => {
+        if (!positions[cid]) return;
+        const cx = positions[cid].x + CARD_W / 2;
+        const cy = positions[cid].y;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${px} ${dropY} L ${cx} ${dropY} L ${cx} ${cy}`);
+        path.setAttribute('class', 'connector connector-child');
+        svg.appendChild(path);
+      });
+    }
+  });
+
+  // Draw person cards
+  Object.entries(positions).forEach(([pid, pos]) => {
+    const p = people[pid];
+    if (!p) return;
+
+    const card = document.createElement('div');
+    card.className = `person-card ${p.gender === 'female' ? 'female' : ''}`;
+    card.style.left = pos.x + 'px';
+    card.style.top  = pos.y + 'px';
+    card.dataset.pid = pid;
+
+    const initial = (p.firstName[0] || '?') + (p.lastName[0] || '');
+    const photoHTML = p.photo
+      ? `<div class="card-photo"><img src="${p.photo}" alt="${p.firstName}"></div>`
+      : `<div class="card-photo">${initial}</div>`;
+
+    const datesHTML = (() => {
+      if (p.birth && p.death) return `${p.birth} – ${p.death}`;
+      if (p.birth) return `b. ${p.birth}`;
+      return '';
+    })();
+
+    card.innerHTML = `
+      ${photoHTML}
+      <div class="card-name">${p.firstName}<br>${p.lastName}</div>
+      ${datesHTML ? `<div class="card-dates">${datesHTML}</div>` : ''}
+      ${p.tagline ? `<div class="card-tagline">${p.tagline}</div>` : ''}
+      ${p.pageFile ? `<div class="card-link">Read Story →</div>` : ''}
+    `;
+
+    card.addEventListener('click', () => {
+      if (p.pageFile) window.location.href = p.pageFile;
+    });
+    card.addEventListener('mouseenter', (e) => showTooltip(e, p));
+    card.addEventListener('mouseleave', hideTooltip);
+
+    world.appendChild(card);
+  });
+
+  // Compute SVG bounds
+  const allX = Object.values(positions).map(p => p.x + CARD_W);
+  const allY = Object.values(positions).map(p => p.y + CARD_H);
+  const maxX = Math.max(...allX, 800) + 200;
+  const maxY = Math.max(...allY, 600) + 200;
+  svg.setAttribute('width',  maxX);
+  svg.setAttribute('height', maxY);
+  svg.style.width  = maxX + 'px';
+  svg.style.height = maxY + 'px';
+
+  applyTransform();
+}
+
+// ─── Pan & Zoom ───────────────────────────────────────────────
+function applyTransform() {
+  world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+}
+
+function adjustZoom(delta) {
+  zoom = Math.min(2, Math.max(0.3, zoom + delta));
+  applyTransform();
+}
+
+function resetView() {
+  zoom = 0.85; panX = 80; panY = 40;
+  applyTransform();
+}
+
+viewport.addEventListener('mousedown', e => {
+  if (e.target.closest('.person-card') || e.target.closest('.btn')) return;
+  dragging = true; lastMX = e.clientX; lastMY = e.clientY;
+  viewport.classList.add('grabbing');
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  panX += e.clientX - lastMX;
+  panY += e.clientY - lastMY;
+  lastMX = e.clientX; lastMY = e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { dragging = false; viewport.classList.remove('grabbing'); });
+
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  // Zoom toward cursor
+  const rect   = viewport.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  const beforeX = (mouseX - panX) / zoom;
+  const beforeY = (mouseY - panY) / zoom;
+  zoom = Math.min(2, Math.max(0.3, zoom + delta));
+  panX = mouseX - beforeX * zoom;
+  panY = mouseY - beforeY * zoom;
+  applyTransform();
+}, { passive: false });
+
+// Touch support
+let lastTouchDist = null;
+viewport.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY; dragging = true; }
+  if (e.touches.length === 2) { lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+});
+viewport.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && dragging) {
+    panX += e.touches[0].clientX - lastMX; panY += e.touches[0].clientY - lastMY;
+    lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+    applyTransform();
+  }
+  if (e.touches.length === 2 && lastTouchDist) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    zoom = Math.min(2, Math.max(0.3, zoom * (d / lastTouchDist)));
+    lastTouchDist = d; applyTransform();
+  }
+}, { passive: false });
+viewport.addEventListener('touchend', () => { dragging = false; lastTouchDist = null; });
+
+// ─── Tooltip ──────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e, p) {
+  const maiden = p.maidenName ? ` (née ${p.maidenName})` : '';
+  const place  = p.birthPlace ? ` · ${p.birthPlace}` : '';
+  tooltip.textContent = `${p.firstName} ${p.lastName}${maiden}${place}`;
+  tooltip.style.opacity = '1';
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top  = (e.clientY - 32) + 'px';
+}
+function hideTooltip() { tooltip.style.opacity = '0'; }
+viewport.addEventListener('mousemove', e => { if (tooltip.style.opacity === '1') moveTooltip(e); });
+
+// ─── Add Person Modal ─────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal-output').style.display = 'none';
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+function saveNewPerson() {
+  const first     = document.getElementById('f-first').value.trim();
+  const last      = document.getElementById('f-last').value.trim();
+  const maiden    = document.getElementById('f-maiden').value.trim();
+  const gender    = document.getElementById('f-gender').value;
+  const birth     = document.getElementById('f-birth').value.trim();
+  const death     = document.getElementById('f-death').value.trim();
+  const birthPlace= document.getElementById('f-birthplace').value.trim();
+  const tagline   = document.getElementById('f-tagline').value.trim();
+
+  if (!first || !last) { alert('First and last name are required.'); return; }
+
+  const newId = 'p' + (Object.keys(FAMILY_DATA.people).length + 1);
+  const slug  = (first + '-' + last).toLowerCase().replace(/\s+/g, '-');
+  const entry = {
+    id: newId,
+    firstName: first,
+    lastName: last,
+    ...(maiden ? { maidenName: maiden } : {}),
+    birth, death, birthPlace, gender,
+    photo: '',
+    pageFile: `people/${slug}.html`,
+    tagline
+  };
+
+  const code = `    "${newId}": ${JSON.stringify(entry, null, 6).replace(/\n/g, '\n    ')},`;
+  const out = document.getElementById('modal-output');
+  out.textContent = `// Paste this into the people: { } section of assets/family-data.js:\n\n${code}`;
+  out.style.display = 'block';
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

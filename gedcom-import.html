@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEDCOM Importer · Family History Website</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@400;600&family=EB+Garamond:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink:       #2a1f14;
+      --ink-light: #5c4a36;
+      --parchment: #f5ede0;
+      --cream:     #faf6ef;
+      --gold:      #b8892a;
+      --gold-pale: #e8d5a3;
+      --sage:      #6b7c5e;
+      --rust:      #8b3a2a;
+      --success:   #3a7c4a;
+      --code-bg:   #1a1410;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'EB Garamond', serif;
+      font-size: 1rem;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────── */
+    header {
+      background: var(--ink);
+      border-bottom: 3px solid var(--gold);
+      padding: 0 48px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    header h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--gold-pale);
+      letter-spacing: .1em;
+    }
+    header h1 span { color: var(--gold); font-weight: 600; }
+    .back-link {
+      font-family: 'Cinzel', serif;
+      font-size: .65rem;
+      letter-spacing: .08em;
+      color: rgba(232,213,163,.6);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .back-link:hover { color: var(--gold); }
+
+    /* ── MAIN LAYOUT ────────────────────────────────────── */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 56px 48px 96px;
+    }
+
+    .page-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: var(--ink);
+      letter-spacing: .06em;
+      margin-bottom: 8px;
+    }
+    .page-subtitle {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.2rem;
+      color: var(--ink-light);
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-family: 'Cinzel', serif;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin: 40px 0 16px;
+    }
+    h2:first-of-type { margin-top: 0; }
+
+    p { margin-bottom: 1em; }
+    p:last-child { margin-bottom: 0; }
+    strong { font-weight: 600; color: var(--ink); }
+
+    /* ── STEP CARDS ─────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0 40px;
+    }
+    .step {
+      background: var(--parchment);
+      border: 1px solid var(--gold-pale);
+      border-top: 3px solid var(--gold);
+      padding: 20px;
+    }
+    .step-num {
+      font-family: 'Cinzel', serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+      color: var(--gold);
+      opacity: .5;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .step-title {
+      font-family: 'Cinzel', serif;
+      font-size: .72rem;
+      letter-spacing: .08em;
+      color: var(--ink);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .step p {
+      font-size: .85rem;
+      color: var(--ink-light);
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    /* ── DIVIDER ─────────────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-pale), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── DROP ZONE ───────────────────────────────────────── */
+    #drop-zone {
+      border: 2px dashed var(--gold-pale);
+      background: var(--parchment);
+      border-radius: 4px;
+      padding: 48px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+    }
+    #drop-zone:hover, #drop-zone.dragover {
+      border-color: var(--gold);
+      background: #f0e8d4;
+    }
+    #drop-zone .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    #drop-zone .drop-label {
+      font-family: 'Cinzel', serif;
+      font-size: .8rem;
+      letter-spacing: .1em;
+      color: var(--ink);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    #drop-zone .drop-sub {
+      font-family: 'EB Garamond', serif;
+      font-style: italic;
+      color: var(--ink-light);
+      font-size: .9rem;
+    }
+    #file-input { display: none; }
+
+    /* ── PROGRESS / STATUS ───────────────────────────────── */
+    #status-bar {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+      padding: 14px 20px;
+      background: var(--parchment);
+      border: 1px solid var(--gold-pale);
+      border-radius: 2px;
+    }
+    #status-bar.visible { display: flex; }
+    #status-bar.success { border-color: var(--success); background: #f0f7f2; }
+    #status-bar.error   { border-color: var(--rust);    background: #fdf3f0; }
+    .status-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .status-text {
+      font-family: 'EB Garamond', serif;
+      font-size: .9rem;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    /* ── PREVIEW TABLE ───────────────────────────────────── */
+    #preview-section { display: none; margin-top: 40px; }
+    #preview-section.visible { display: block; }
+
+    .preview-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--parchment);
+      border: 1px solid var(--gold-pale);
+      border-top: 3px solid var(--gold);
+      padding: 14px 20px;
+      text-align: center;
+      flex: 1;
+    }
+    .stat-num {
+      font-family: 'Cinzel', serif;
+      font-size: 2rem;
+      font-weight: 400;
+      color: var(--gold);
+      display: block;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-family: 'Cinzel', serif;
+      font-size: .6rem;
+      letter-spacing: .1em;
+      color: var(--ink-light);
+      text-transform: uppercase;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+      font-size: .85rem;
+    }
+    th {
+      font-family: 'Cinzel', serif;
+      font-size: .6rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border-bottom: 2px solid var(--gold-pale);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(184,137,42,.1);
+      vertical-align: top;
+    }
+    tr:hover td { background: rgba(184,137,42,.04); }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-family: 'Cinzel', serif;
+      font-size: .58rem;
+      letter-spacing: .06em;
+    }
+    .badge-m { background: rgba(42,31,20,.08); color: var(--ink-light); }
+    .badge-f { background: rgba(107,124,94,.15); color: var(--sage); }
+
+    /* ── CODE OUTPUT ─────────────────────────────────────── */
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .copy-btn {
+      font-family: 'Cinzel', serif;
+      font-size: .65rem;
+      letter-spacing: .08em;
+      background: var(--gold);
+      color: var(--ink);
+      border: none;
+      padding: 7px 16px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background .15s;
+    }
+    .copy-btn:hover { background: #d4a030; }
+    .copy-btn.copied { background: var(--success); color: white; }
+
+    #code-output {
+      background: var(--code-bg);
+      color: #e8d5a3;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      line-height: 1.6;
+      padding: 24px;
+      border-radius: 4px;
+      border: 1px solid rgba(184,137,42,.2);
+      overflow-x: auto;
+      white-space: pre;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    /* Syntax colouring */
+    .token-key    { color: #e8d5a3; }
+    .token-str    { color: #a8d8a8; }
+    .token-num    { color: #f4a460; }
+    .token-kw     { color: #9ec8e8; }
+    .token-cmt    { color: #5c7060; font-style: italic; }
+
+    /* ── INSTRUCTIONS BOX ────────────────────────────────── */
+    .install-box {
+      background: var(--ink);
+      color: var(--gold-pale);
+      border-radius: 4px;
+      padding: 28px 32px;
+      margin-top: 32px;
+    }
+    .install-box h3 {
+      font-family: 'Cinzel', serif;
+      font-size: .75rem;
+      letter-spacing: .12em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .install-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      font-size: .88rem;
+    }
+    .install-step:last-child { margin-bottom: 0; }
+    .install-n {
+      font-family: 'Cinzel', serif;
+      font-size: .7rem;
+      background: var(--gold);
+      color: var(--ink);
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .install-box code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      background: rgba(184,137,42,.15);
+      color: var(--gold);
+      padding: 1px 6px;
+      border-radius: 2px;
+    }
+
+    /* ── WARNINGS ────────────────────────────────────────── */
+    .warning-box {
+      background: #fff8ec;
+      border: 1px solid var(--gold);
+      border-left: 4px solid var(--gold);
+      padding: 16px 20px;
+      border-radius: 2px;
+      font-size: .88rem;
+    }
+    .warning-box strong {
+      font-family: 'Cinzel', serif;
+      font-size: .7rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .warning-list { list-style: none; padding: 0; margin: 8px 0 0; }
+    .warning-list li {
+      padding: 3px 0 3px 16px;
+      position: relative;
+      font-size: .85rem;
+      color: var(--ink-light);
+    }
+    .warning-list li::before { content: '·'; position: absolute; left: 4px; color: var(--gold); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Family History · <span>GEDCOM Importer</span></h1>
+  <a href="index.html" class="back-link">← Back to Family Tree</a>
+</header>
+
+<div class="page">
+
+  <div class="page-title">Import from Family Echo</div>
+  <div class="page-subtitle">Convert a GEDCOM export into your family-data.js file in seconds.</div>
+
+  <!-- ── HOW TO EXPORT FROM FAMILY ECHO ─────────────────── -->
+  <h2>Step 1 — Export from Family Echo</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Open Your Tree</div>
+      <p>Log in to familyecho.com and open your family tree. Click on <strong>any person</strong> to open their sidebar panel.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">Find Export</div>
+      <p>Scroll to the bottom of the sidebar and click <strong>"Download / export this family…"</strong></p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">Download GEDCOM</div>
+      <p>Select <strong>GEDCOM</strong> from the format options and click Download. You'll get a <strong>.ged</strong> file.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── FILE UPLOAD ─────────────────────────────────────── -->
+  <h2>Step 2 — Upload Your .ged File</h2>
+
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <span class="drop-icon">📂</span>
+    <div class="drop-label">Drop your .ged file here</div>
+    <div class="drop-sub">or click to browse your files</div>
+    <input type="file" id="file-input" accept=".ged,.gedcom,.txt">
+  </div>
+
+  <div id="status-bar">
+    <span class="status-icon" id="status-icon">⏳</span>
+    <span class="status-text" id="status-text">Processing…</span>
+  </div>
+
+  <!-- ── PREVIEW + OUTPUT ─────────────────────────────────── -->
+  <div id="preview-section">
+
+    <h2>Step 3 — Review &amp; Copy</h2>
+
+    <div class="preview-stats">
+      <div class="stat"><span class="stat-num" id="stat-people">0</span><span class="stat-label">People</span></div>
+      <div class="stat"><span class="stat-num" id="stat-unions">0</span><span class="stat-label">Unions</span></div>
+      <div class="stat"><span class="stat-num" id="stat-gen">0</span><span class="stat-label">Generations</span></div>
+    </div>
+
+    <!-- People preview table -->
+    <table id="preview-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Born</th>
+          <th>Died</th>
+          <th>Birthplace</th>
+          <th>Sex</th>
+        </tr>
+      </thead>
+      <tbody id="preview-tbody"></tbody>
+    </table>
+
+    <!-- Code output -->
+    <div class="output-header">
+      <h2 style="margin:0">Generated family-data.js</h2>
+      <button class="copy-btn" id="copy-btn" onclick="copyCode()">Copy to Clipboard</button>
+    </div>
+    <div id="code-output"></div>
+
+    <!-- Installation instructions -->
+    <div class="install-box">
+      <h3>How to install this into your website</h3>
+      <div class="install-step">
+        <div class="install-n">1</div>
+        <div>Copy the code above using the <strong>Copy to Clipboard</strong> button.</div>
+      </div>
+      <div class="install-step">
+        <div class="install-n">2</div>
+        <div>Open <code>assets/family-data.js</code> in any text editor.</div>
+      </div>
+      <div class="install-step">
+        <div class="install-n">3</div>
+        <div><strong>Replace the entire contents</strong> of that file with the copied code.</div>
+      </div>
+      <div class="install-step">
+        <div class="install-n">4</div>
+        <div>Save the file, then open <code>index.html</code> in your browser. Your full family tree will appear automatically.</div>
+      </div>
+      <div class="install-step">
+        <div class="install-n">5</div>
+        <div>For each person, create a story page by copying <code>PERSON-TEMPLATE.html</code> to <code>people/firstname-lastname.html</code> and set the <code>pageFile</code> field in the data. See <code>INSTRUCTIONS.md</code> for details.</div>
+      </div>
+    </div>
+
+    <!-- Warnings section -->
+    <div id="warnings-section" style="display:none; margin-top: 24px;">
+      <div class="warning-box">
+        <strong>⚠ Things to review manually</strong>
+        <ul class="warning-list" id="warnings-list"></ul>
+      </div>
+    </div>
+
+  </div><!-- /preview-section -->
+
+</div><!-- /page -->
+
+<script>
+// ── GEDCOM PARSER ─────────────────────────────────────────────
+
+/**
+ * Parse a raw GEDCOM string into a structured object.
+ * Returns { individuals, families }
+ */
+function parseGEDCOM(text) {
+  const lines = text.split(/\r?\n/);
+
+  // Tokenise into records
+  const records = [];
+  let current = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // Match: LEVEL [XREF] TAG [VALUE]
+    const m = line.match(/^(\d+)\s+(?:(@[^@]+@)\s+)?(\w+)(?:\s+(.*))?$/);
+    if (!m) continue;
+
+    const level = parseInt(m[1]);
+    const xref  = m[2] || null;
+    const tag   = m[3];
+    const value = m[4] ? m[4].trim() : '';
+
+    if (level === 0) {
+      current = { xref, tag, value, children: [] };
+      records.push(current);
+    } else if (current) {
+      // Add as a nested token — we'll do a simple flat approach
+      current.children.push({ level, tag, value });
+    }
+  }
+
+  // ── Extract individuals ───────────────────────────────────
+  const individuals = {};
+  for (const rec of records) {
+    if (rec.tag !== 'INDI') continue;
+    const id = rec.xref;
+
+    const get = (tag) => {
+      const c = rec.children.find(ch => ch.tag === tag);
+      return c ? c.value : '';
+    };
+    const getSub = (parentTag, childTag) => {
+      const pidx = rec.children.findIndex(ch => ch.tag === parentTag);
+      if (pidx < 0) return '';
+      // Look for childTag immediately after parentTag at parentTag.level + 1
+      for (let i = pidx + 1; i < rec.children.length; i++) {
+        const ch = rec.children[i];
+        if (ch.level <= rec.children[pidx].level) break;
+        if (ch.tag === childTag) return ch.value;
+      }
+      return '';
+    };
+
+    // Name parsing: "John /Smith/" → firstName=John, lastName=Smith
+    const rawName = get('NAME');
+    let firstName = '', lastName = '', suffix = '';
+    if (rawName) {
+      const nameParts = rawName.match(/^([^/]*)\s*\/([^/]*)\/?(.*)$/);
+      if (nameParts) {
+        firstName = nameParts[1].trim();
+        lastName  = nameParts[2].trim();
+        suffix    = nameParts[3].trim();
+      } else {
+        // No slashes — treat whole thing as first name
+        firstName = rawName.trim();
+      }
+    }
+    // Handle "Given1 Given2" with GIVN / SURN tags if present
+    const givn = get('GIVN') || get('_MARNM');
+    const surn = get('SURN');
+    if (!firstName && givn) firstName = givn;
+    if (!lastName  && surn) lastName  = surn;
+
+    const sex  = get('SEX') || '';
+    const gender = sex === 'M' ? 'male' : sex === 'F' ? 'female' : 'other';
+
+    // Birth
+    const birthDate  = getSub('BIRT', 'DATE');
+    const birthPlace = getSub('BIRT', 'PLAC');
+
+    // Death
+    const deathDate  = getSub('DEAT', 'DATE');
+    const deathPlace = getSub('DEAT', 'PLAC');
+
+    // Note / bio text
+    const note = get('NOTE');
+
+    // Maiden name (ROMN or _MARNM or before marriage)
+    const maidenNote = get('_MARNM') || '';
+
+    // Family links
+    const famc = rec.children.filter(c => c.tag === 'FAMC').map(c => c.value); // child of
+    const fams = rec.children.filter(c => c.tag === 'FAMS').map(c => c.value); // spouse in
+
+    individuals[id] = {
+      id,
+      firstName,
+      lastName,
+      maidenNote,
+      birth:  extractYear(birthDate),
+      birthFull: birthDate,
+      birthPlace,
+      death:  extractYear(deathDate),
+      deathFull: deathDate,
+      deathPlace,
+      gender,
+      note,
+      famc,
+      fams
+    };
+  }
+
+  // ── Extract families ──────────────────────────────────────
+  const families = {};
+  for (const rec of records) {
+    if (rec.tag !== 'FAM') continue;
+    const id = rec.xref;
+
+    const husb = rec.children.find(c => c.tag === 'HUSB')?.value || null;
+    const wife = rec.children.find(c => c.tag === 'WIFE')?.value || null;
+    const children = rec.children.filter(c => c.tag === 'CHIL').map(c => c.value);
+
+    const getSub = (parentTag, childTag) => {
+      const pidx = rec.children.findIndex(ch => ch.tag === parentTag);
+      if (pidx < 0) return '';
+      for (let i = pidx + 1; i < rec.children.length; i++) {
+        const ch = rec.children[i];
+        if (ch.level <= rec.children[pidx].level) break;
+        if (ch.tag === childTag) return ch.value;
+      }
+      return '';
+    };
+
+    const marriageDate = getSub('MARR', 'DATE');
+    const divorceDate  = getSub('DIV', 'DATE') || getSub('DIVF', 'DATE');
+
+    families[id] = {
+      id,
+      partner1: husb,
+      partner2: wife,
+      married:  extractYear(marriageDate),
+      divorced: divorceDate ? extractYear(divorceDate) : null,
+      children
+    };
+  }
+
+  return { individuals, families };
+}
+
+function extractYear(dateStr) {
+  if (!dateStr) return '';
+  const m = dateStr.match(/\b(\d{4})\b/);
+  return m ? m[1] : dateStr;
+}
+
+// ── CONVERT TO family-data.js FORMAT ─────────────────────────
+
+function convert(gedcomData) {
+  const { individuals, families } = gedcomData;
+  const warnings = [];
+
+  // Build person IDs: GEDCOM @I5@ → "p5" etc.
+  function personId(gedId) {
+    if (!gedId) return null;
+    // Try to extract the number
+    const m = gedId.match(/@([A-Za-z]?)(\d+)@/);
+    if (m) return 'p' + m[2];
+    // Fallback: slugify
+    return 'p_' + gedId.replace(/@/g, '').replace(/\s+/g,'_');
+  }
+  function unionId(gedId) {
+    if (!gedId) return null;
+    const m = gedId.match(/@([A-Za-z]?)(\d+)@/);
+    if (m) return 'u' + m[2];
+    return 'u_' + gedId.replace(/@/g, '').replace(/\s+/g,'_');
+  }
+
+  const people = {};
+  const unmappedNames = [];
+
+  for (const [gedId, p] of Object.entries(individuals)) {
+    const pid = personId(gedId);
+    const slug = slugify(p.firstName, p.lastName);
+
+    // Detect possible maiden name situations (spouse's last name differs)
+    // We'll flag it in warnings rather than guess
+    if (!p.firstName && !p.lastName) {
+      unmappedNames.push(gedId);
+      warnings.push(`Person ${gedId} has no parseable name — check their entry in family-data.js`);
+    }
+
+    people[pid] = {
+      id: pid,
+      firstName: p.firstName || '(Unknown)',
+      lastName:  p.lastName  || '(Unknown)',
+      birth:      p.birth,
+      death:      p.death,
+      birthPlace: p.birthPlace,
+      gender:     p.gender,
+      photo:      '',
+      pageFile:   `people/${slug}.html`,
+      tagline:    ''
+    };
+
+    if (p.note) {
+      people[pid]._note = p.note.substring(0, 100);
+    }
+  }
+
+  const unions = {};
+  for (const [gedId, f] of Object.entries(families)) {
+    const uid = unionId(gedId);
+    unions[uid] = {
+      id:       uid,
+      partner1: personId(f.partner1),
+      partner2: personId(f.partner2),
+      married:  f.married || '',
+      divorced: f.divorced || null,
+      children: f.children.map(personId)
+    };
+
+    if (!f.partner1 && !f.partner2) {
+      warnings.push(`Family ${gedId} has no partners listed — only children. Check union ${uid}.`);
+    }
+  }
+
+  // Find a reasonable root
+  const childIds = new Set(Object.values(unions).flatMap(u => u.children));
+  const rootCandidates = Object.keys(people).filter(pid => !childIds.has(pid));
+  const rootPerson = rootCandidates[0] || Object.keys(people)[0] || 'p1';
+
+  // Count generations (BFS)
+  const gen = {};
+  const queue = rootCandidates.map(r => ({ id: r, g: 0 }));
+  while (queue.length) {
+    const { id, g } = queue.shift();
+    if (gen[id] !== undefined) continue;
+    gen[id] = g;
+    // Find unions where this person is a partner and push children
+    for (const u of Object.values(unions)) {
+      if (u.partner1 === id || u.partner2 === id) {
+        for (const cid of u.children) {
+          if (gen[cid] === undefined) queue.push({ id: cid, g: g + 1 });
+        }
+      }
+    }
+  }
+  const maxGen = Object.keys(gen).length > 0 ? Math.max(...Object.values(gen)) + 1 : 1;
+
+  return { people, unions, rootPerson, maxGen, warnings };
+}
+
+function slugify(first, last) {
+  return [(first || 'unknown'), (last || 'unknown')]
+    .join('-')
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// ── RENDER CODE OUTPUT ─────────────────────────────────────────
+
+function renderCode(data) {
+  const { people, unions, rootPerson } = data;
+
+  let out = `// ============================================================\n`;
+  out += `//  FAMILY DATA — Auto-imported from GEDCOM\n`;
+  out += `//  Generated: ${new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}\n`;
+  out += `//  People: ${Object.keys(people).length}  |  Unions: ${Object.keys(unions).length}\n`;
+  out += `// ============================================================\n\n`;
+  out += `const FAMILY_DATA = {\n\n`;
+  out += `  people: {\n`;
+
+  for (const [pid, p] of Object.entries(people)) {
+    out += `\n    "${pid}": {\n`;
+    out += `      id: "${pid}",\n`;
+    out += `      firstName: ${JSON.stringify(p.firstName)},\n`;
+    out += `      lastName: ${JSON.stringify(p.lastName)},\n`;
+    if (p.birth)      out += `      birth: ${JSON.stringify(p.birth)},\n`;
+    else              out += `      birth: "",\n`;
+    if (p.death)      out += `      death: ${JSON.stringify(p.death)},\n`;
+    else              out += `      death: "",\n`;
+    if (p.birthPlace) out += `      birthPlace: ${JSON.stringify(p.birthPlace)},\n`;
+    else              out += `      birthPlace: "",\n`;
+    out += `      gender: ${JSON.stringify(p.gender)},\n`;
+    out += `      photo: "",\n`;
+    out += `      pageFile: ${JSON.stringify(p.pageFile)},\n`;
+    if (p._note)      out += `      // Note from GEDCOM: ${p._note.replace(/\n/g,' ')}\n`;
+    out += `      tagline: ""\n`;
+    out += `    },\n`;
+  }
+
+  out += `  },\n\n  unions: {\n`;
+
+  for (const [uid, u] of Object.entries(unions)) {
+    out += `\n    "${uid}": {\n`;
+    out += `      id: "${uid}",\n`;
+    out += `      partner1: ${u.partner1 ? JSON.stringify(u.partner1) : 'null'},\n`;
+    out += `      partner2: ${u.partner2 ? JSON.stringify(u.partner2) : 'null'},\n`;
+    out += `      married: ${JSON.stringify(u.married || '')},\n`;
+    out += `      divorced: ${u.divorced ? JSON.stringify(u.divorced) : 'null'},\n`;
+    out += `      children: ${JSON.stringify(u.children)}\n`;
+    out += `    },\n`;
+  }
+
+  out += `  },\n\n`;
+  out += `  rootPerson: ${JSON.stringify(rootPerson)}\n`;
+  out += `};\n`;
+
+  return out;
+}
+
+// ── SYNTAX HIGHLIGHT ───────────────────────────────────────────
+
+function highlight(code) {
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // Comments
+    .replace(/(\/\/[^\n]*)/g, '<span class="token-cmt">$1</span>')
+    // Keys (quoted keys before colon)
+    .replace(/("(?:[^"]|\\")+")\s*:/g, '<span class="token-key">$1</span>:')
+    // String values
+    .replace(/:\s*("(?:[^"]|\\")*")/g, (m, s) => m.replace(s, `<span class="token-str">${s}</span>`))
+    // Keywords
+    .replace(/\b(const|null|true|false)\b/g, '<span class="token-kw">$1</span>')
+    // Numbers (standalone)
+    .replace(/\b(\d+)\b/g, '<span class="token-num">$1</span>');
+}
+
+// ── UI GLUE ────────────────────────────────────────────────────
+
+let generatedCode = '';
+
+function handleFile(file) {
+  if (!file) return;
+
+  const statusBar  = document.getElementById('status-bar');
+  const statusText = document.getElementById('status-text');
+  const statusIcon = document.getElementById('status-icon');
+
+  statusBar.className = 'status-bar visible';
+  statusBar.style.display = 'flex';
+  statusIcon.textContent = '⏳';
+  statusText.textContent = `Reading ${file.name}…`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text    = e.target.result;
+      const parsed  = parseGEDCOM(text);
+      const data    = convert(parsed);
+
+      generatedCode = renderCode(data);
+
+      // Stats
+      document.getElementById('stat-people').textContent = Object.keys(data.people).length;
+      document.getElementById('stat-unions').textContent = Object.keys(data.unions).length;
+      document.getElementById('stat-gen').textContent    = data.maxGen;
+
+      // Preview table
+      const tbody = document.getElementById('preview-tbody');
+      tbody.innerHTML = '';
+      for (const [pid, p] of Object.entries(data.people)) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--gold)">${pid}</td>
+          <td><strong>${p.firstName} ${p.lastName}</strong></td>
+          <td>${p.birth || '–'}</td>
+          <td>${p.death || '–'}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.birthPlace}">${p.birthPlace || '–'}</td>
+          <td><span class="badge badge-${p.gender === 'male' ? 'm' : 'f'}">${p.gender}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // Code output
+      document.getElementById('code-output').innerHTML = highlight(generatedCode);
+
+      // Warnings
+      if (data.warnings.length > 0) {
+        const wSection = document.getElementById('warnings-section');
+        const wList    = document.getElementById('warnings-list');
+        wList.innerHTML = data.warnings.map(w => `<li>${w}</li>`).join('');
+        wSection.style.display = 'block';
+      }
+
+      // Show everything
+      document.getElementById('preview-section').classList.add('visible');
+
+      statusBar.className = 'visible success';
+      statusIcon.textContent = '✅';
+      statusText.textContent = `Successfully parsed ${file.name} — ${Object.keys(data.people).length} people, ${Object.keys(data.unions).length} family units found.`;
+
+    } catch (err) {
+      statusBar.className = 'visible error';
+      statusIcon.textContent = '❌';
+      statusText.textContent = `Error parsing file: ${err.message}. Make sure this is a valid GEDCOM (.ged) file exported from Family Echo.`;
+      console.error(err);
+    }
+  };
+  reader.onerror = () => {
+    statusBar.className = 'visible error';
+    statusIcon.textContent = '❌';
+    statusText.textContent = 'Could not read the file. Please try again.';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function copyCode() {
+  if (!generatedCode) return;
+  navigator.clipboard.writeText(generatedCode).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy to Clipboard';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // Fallback
+    const el = document.createElement('textarea');
+    el.value = generatedCode;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  });
+}
+
+// File input
+document.getElementById('file-input').addEventListener('change', (e) => {
+  handleFile(e.target.files[0]);
+});
+
+// Drag & drop
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+</body>
+</html>

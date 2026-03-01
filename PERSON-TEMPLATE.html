@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<!--
+  ════════════════════════════════════════════════════════════
+  PERSON PAGE TEMPLATE
+  ════════════════════════════════════════════════════════════
+  HOW TO USE THIS FILE:
+  1. Copy this file and rename it:  people/firstname-lastname.html
+  2. Search for every line marked  ← EDIT  and fill it in
+  3. Delete the placeholder lorem ipsum text and write the
+     person's real story
+  4. In assets/family-data.js, set pageFile: "people/firstname-lastname.html"
+  See INSTRUCTIONS.md for a full walkthrough.
+  ════════════════════════════════════════════════════════════
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIRST LAST · Hartwell Family</title>   <!-- ← EDIT: replace FIRST LAST -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Cinzel:wght@400;600&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    /* Styles are identical to william-hartwell.html — copy once, reuse everywhere */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink:#2a1f14;--ink-light:#5c4a36;--parchment:#f5ede0;--cream:#faf6ef;
+      --gold:#b8892a;--gold-pale:#e8d5a3;--rust:#8b3a2a;--sage:#6b7c5e;
+    }
+    html{scroll-behavior:smooth;}
+    body{background:var(--cream);color:var(--ink);font-family:'EB Garamond',serif;font-size:1.05rem;line-height:1.8;}
+    nav{background:var(--ink);border-bottom:3px solid var(--gold);padding:0 48px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    nav .breadcrumb{font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.1em;color:var(--gold-pale);}
+    nav .breadcrumb a{color:var(--gold);text-decoration:none;}
+    nav .breadcrumb a:hover{text-decoration:underline;}
+    nav .nav-links{display:flex;gap:24px;}
+    nav .nav-links a{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.08em;color:rgba(232,213,163,.6);text-decoration:none;transition:color .15s;}
+    nav .nav-links a:hover{color:var(--gold);}
+    .hero{background:var(--ink);padding:72px 0 0;position:relative;overflow:hidden;}
+    .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(184,137,42,.12) 0%,transparent 55%);pointer-events:none;}
+    .hero-inner{max-width:900px;margin:0 auto;padding:0 48px 56px;display:flex;gap:56px;align-items:flex-end;position:relative;}
+    .hero-photo{width:180px;height:220px;flex-shrink:0;border:3px solid var(--gold);background:var(--ink-light);overflow:hidden;align-self:flex-end;}
+    .hero-photo img{width:100%;height:100%;object-fit:cover;}
+    .hero-photo .photo-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:rgba(232,213,163,.3);}
+    .hero-photo .photo-placeholder span{font-size:3rem;}
+    .hero-photo .photo-placeholder p{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.1em;text-align:center;}
+    .hero-text{flex:1;padding-bottom:4px;}
+    .hero-label{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+    .hero-name{font-family:'Cinzel',serif;font-size:3rem;font-weight:400;color:var(--parchment);line-height:1.1;margin-bottom:8px;}
+    .hero-name .maiden{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.4rem;color:var(--gold-pale);font-weight:300;display:block;margin-top:4px;}
+    .hero-dates{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.2rem;color:var(--gold);margin-bottom:20px;}
+    .hero-tagline{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.35rem;color:var(--gold-pale);line-height:1.5;max-width:520px;border-left:2px solid var(--gold);padding-left:20px;}
+    .hero-vitals{margin-top:24px;display:flex;flex-wrap:wrap;gap:24px;}
+    .vital-label{font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.1em;color:rgba(184,137,42,.7);text-transform:uppercase;margin-bottom:2px;}
+    .vital-value{font-family:'EB Garamond',serif;font-size:.9rem;color:var(--gold-pale);}
+    .section-divider{height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+    main{max-width:900px;margin:0 auto;padding:64px 48px 96px;}
+    blockquote{margin:40px 0;padding:24px 32px;border-left:4px solid var(--gold);background:var(--parchment);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.35rem;color:var(--ink-light);line-height:1.5;position:relative;}
+    blockquote::before{content:'\201C';font-size:4rem;color:var(--gold-pale);position:absolute;top:-8px;left:12px;font-family:'Cormorant Garamond',serif;line-height:1;}
+    blockquote cite{display:block;margin-top:8px;font-style:normal;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.08em;color:var(--gold);}
+    h2{font-family:'Cinzel',serif;font-weight:400;font-size:1.1rem;letter-spacing:.1em;color:var(--ink);margin:56px 0 20px;padding-bottom:10px;border-bottom:1px solid var(--gold-pale);text-transform:uppercase;}
+    h2:first-child{margin-top:0;}
+    p{margin-bottom:1.4em;}
+    p:last-child{margin-bottom:0;}
+    .photo-strip{display:flex;gap:12px;margin:32px 0;overflow-x:auto;padding-bottom:8px;}
+    .photo-strip figure{flex-shrink:0;width:200px;}
+    .photo-strip figure img{width:100%;height:150px;object-fit:cover;border:2px solid var(--gold-pale);display:block;}
+    .photo-strip figure figcaption{font-family:'EB Garamond',serif;font-style:italic;font-size:.75rem;color:var(--ink-light);padding:4px 0;text-align:center;}
+    .timeline{margin:32px 0;}
+    .timeline-item{display:flex;gap:24px;margin-bottom:20px;position:relative;}
+    .timeline-item::before{content:'';position:absolute;left:46px;top:28px;bottom:-20px;width:1px;background:var(--gold-pale);}
+    .timeline-item:last-child::before{display:none;}
+    .timeline-year{width:56px;flex-shrink:0;font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.04em;color:var(--gold);padding-top:2px;text-align:right;}
+    .timeline-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);flex-shrink:0;margin-top:5px;position:relative;z-index:1;}
+    .timeline-content{flex:1;padding-bottom:4px;}
+    .timeline-content strong{font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:.04em;color:var(--ink);display:block;margin-bottom:3px;}
+    .timeline-content p{font-size:.9rem;color:var(--ink-light);margin-bottom:0;}
+    .fact-box{background:var(--parchment);border:1px solid var(--gold-pale);border-top:3px solid var(--gold);padding:24px 28px;margin:32px 0;}
+    .fact-box h3{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;}
+    .fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;}
+    .fact-label{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.08em;color:var(--ink-light);text-transform:uppercase;margin-bottom:2px;}
+    .fact-value{font-size:.9rem;color:var(--ink);}
+    .family-links{margin:32px 0;}
+    .family-links h3{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;}
+    .family-link-row{display:flex;flex-wrap:wrap;gap:10px;}
+    .family-link{display:inline-flex;align-items:center;gap:8px;background:var(--parchment);border:1px solid var(--gold-pale);padding:8px 14px;text-decoration:none;color:var(--ink);font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.06em;transition:all .15s;border-radius:2px;}
+    .family-link:hover{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+    .family-link .rel{color:var(--ink-light);font-weight:400;font-size:.6rem;}
+    .family-link:hover .rel{color:var(--ink);}
+    footer{background:var(--ink);border-top:3px solid var(--gold);padding:24px 48px;text-align:center;}
+    footer p{font-family:'EB Garamond',serif;font-style:italic;color:rgba(232,213,163,.5);font-size:.82rem;margin-bottom:0;}
+    footer a{color:var(--gold);text-decoration:none;}
+    footer a:hover{text-decoration:underline;}
+    /* EDIT HELPERS — remove these before publishing */
+    .edit-note{background:#fff3cd;border:1px solid #ffc107;padding:8px 12px;font-family:monospace;font-size:.75rem;color:#856404;margin-bottom:8px;border-radius:2px;}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="breadcrumb">
+    <a href="../index.html">Family Tree</a>
+    <span style="color:var(--gold-pale);margin:0 8px;">›</span>
+    <span>FIRST LAST</span>  <!-- ← EDIT -->
+  </div>
+  <div class="nav-links">
+    <a href="#life">Life Story</a>
+    <a href="#timeline">Timeline</a>
+    <a href="#family">Family</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-photo">
+      <!-- Option A — photo file:
+           <img src="../assets/photos/firstname-lastname.jpg" alt="FIRST LAST">   ← EDIT -->
+      <!-- Option B — no photo yet: -->
+      <div class="photo-placeholder">
+        <span>📷</span>
+        <p>Photo to<br>be added</p>
+      </div>
+    </div>
+    <div class="hero-text">
+      <div class="hero-label">Generation X · Role</div>  <!-- ← EDIT: e.g. "Generation III · Son" -->
+      <div class="hero-name">
+        FIRST LAST                                        <!-- ← EDIT -->
+        <!-- If they changed their name add:
+        <span class="maiden">née MAIDEN NAME</span>       ← EDIT or delete -->
+      </div>
+      <div class="hero-dates">YYYY – YYYY · XX years</div>  <!-- ← EDIT; if living: "b. YYYY" -->
+      <div class="hero-tagline">
+        Your one-line tagline goes here.                  <!-- ← EDIT -->
+      </div>
+      <div class="hero-vitals">
+        <div class="vital"><div class="vital-label">Born</div><div class="vital-value">City, State/Country</div></div>  <!-- ← EDIT -->
+        <div class="vital"><div class="vital-label">Died</div><div class="vital-value">City, State/Country</div></div>  <!-- ← EDIT or delete -->
+        <div class="vital"><div class="vital-label">Married</div><div class="vital-value">Name, YYYY</div></div>         <!-- ← EDIT or delete -->
+        <div class="vital"><div class="vital-label">Children</div><div class="vital-value">Name, Name</div></div>        <!-- ← EDIT or delete -->
+      </div>
+    </div>
+  </div>
+</div>
+<div class="section-divider"></div>
+
+<main>
+
+  <!-- ════════ LIFE STORY — replace placeholder text below ════════ -->
+  <div id="life">
+    <p class="edit-note">✏️ EDIT HINT: Replace the sections below with the real story. Each &lt;h2&gt; is a chapter. Add, remove, or rename chapters freely. Delete this yellow box when done.</p>
+
+    <h2>Early Life</h2>
+    <p>
+      Write about their childhood here. Where were they born? What was their family like?
+      What was the world they grew up in? Even a few sentences is more than most families record.
+    </p>
+
+    <blockquote>
+      "A memorable quote from or about this person goes here."
+      <cite>— Source, Year</cite>                              <!-- ← EDIT or delete -->
+    </blockquote>
+
+    <h2>Chapter Two</h2>  <!-- ← EDIT: rename to something meaningful, e.g. "The War Years" -->
+    <p>
+      Continue the story here. What shaped them? What did they build, lose, discover?
+    </p>
+
+    <!-- PHOTO STRIP — add real photos; delete placeholder divs when done -->
+    <div class="photo-strip">
+      <figure>
+        <!-- <img src="../assets/photos/FILENAME.jpg" alt="Caption">  ← EDIT -->
+        <div style="width:200px;height:150px;background:var(--parchment);border:2px solid var(--gold-pale);display:flex;align-items:center;justify-content:center;color:var(--ink-light);font-style:italic;font-size:.75rem;">Add a photo</div>
+        <figcaption>Caption for photo 1</figcaption>          <!-- ← EDIT -->
+      </figure>
+      <figure>
+        <div style="width:200px;height:150px;background:var(--parchment);border:2px solid var(--gold-pale);display:flex;align-items:center;justify-content:center;color:var(--ink-light);font-style:italic;font-size:.75rem;">Add a photo</div>
+        <figcaption>Caption for photo 2</figcaption>          <!-- ← EDIT -->
+      </figure>
+    </div>
+
+    <h2>Chapter Three</h2>  <!-- ← EDIT or delete -->
+    <p>Add more story here. Consider: marriage, career, defining moments, last years.</p>
+
+  </div><!-- end #life -->
+
+  <!-- ════════ TIMELINE — fill in key dates ════════ -->
+  <div id="timeline">
+    <h2>Timeline</h2>
+    <div class="timeline">
+
+      <!-- Copy and paste this block to add more events -->
+      <div class="timeline-item">
+        <div class="timeline-year">YYYY</div>  <!-- ← EDIT -->
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <strong>Event Title</strong>          <!-- ← EDIT -->
+          <p>Brief description of the event.</p><!-- ← EDIT -->
+        </div>
+      </div>
+      <!-- /timeline-item -->
+
+      <div class="timeline-item">
+        <div class="timeline-year">YYYY</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <strong>Event Title</strong>
+          <p>Brief description.</p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-year">YYYY</div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <strong>Event Title</strong>
+          <p>Brief description.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════ VITAL RECORDS BOX ════════ -->
+  <div class="fact-box">
+    <h3>Vital Records</h3>
+    <div class="fact-grid">
+      <div class="fact-item"><div class="fact-label">Full Name</div><div class="fact-value">FULL NAME HERE</div></div>  <!-- ← EDIT -->
+      <div class="fact-item"><div class="fact-label">Date of Birth</div><div class="fact-value">DD Month YYYY</div></div><!-- ← EDIT -->
+      <div class="fact-item"><div class="fact-label">Birthplace</div><div class="fact-value">City, Country</div></div>   <!-- ← EDIT -->
+      <div class="fact-item"><div class="fact-label">Date of Death</div><div class="fact-value">DD Month YYYY</div></div><!-- ← EDIT or delete row -->
+      <div class="fact-item"><div class="fact-label">Place of Death</div><div class="fact-value">City, State</div></div> <!-- ← EDIT or delete row -->
+      <div class="fact-item"><div class="fact-label">Occupation</div><div class="fact-value">Occupation</div></div>      <!-- ← EDIT -->
+    </div>
+  </div>
+
+  <!-- ════════ FAMILY CONNECTIONS ════════ -->
+  <div id="family">
+    <h2>Family Connections</h2>
+
+    <!-- Repeat .family-links blocks for Spouse, Children, Siblings, Parents etc. -->
+    <div class="family-links">
+      <h3>Spouse</h3>                                          <!-- ← EDIT label -->
+      <div class="family-link-row">
+        <a href="spouse-page.html" class="family-link">        <!-- ← EDIT href -->
+          Spouse Name <span class="rel">(married YYYY)</span>  <!-- ← EDIT -->
+        </a>
+      </div>
+    </div>
+
+    <div class="family-links" style="margin-top:20px;">
+      <h3>Children</h3>                                        <!-- ← EDIT label -->
+      <div class="family-link-row">
+        <a href="child-one.html" class="family-link">Child One</a>  <!-- ← EDIT -->
+        <a href="child-two.html" class="family-link">Child Two</a>  <!-- ← EDIT -->
+      </div>
+    </div>
+
+    <div class="family-links" style="margin-top:20px;">
+      <h3>Parents</h3>                                         <!-- ← EDIT or delete -->
+      <div class="family-link-row">
+        <a href="parent.html" class="family-link">Parent Name</a>   <!-- ← EDIT -->
+      </div>
+    </div>
+
+  </div><!-- end #family -->
+
+</main>
+
+<footer>
+  <p>
+    <a href="../index.html">← Return to the Family Tree</a>
+    &ensp;·&ensp;
+    Part of the <em>Hartwell Family History</em> archive  <!-- ← EDIT family name -->
+  </p>
+</footer>
+
+</body>
+</html>
